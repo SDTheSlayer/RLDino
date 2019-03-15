@@ -9,7 +9,7 @@ import time as t
 pygame.init()
 
 scr_size = (width,height) = (600,150)
-FPS = 60
+FPS = 1000
 gravity = 0.6
 
 black = (0,0,0)
@@ -369,7 +369,6 @@ class Game():
                 self.gameOver = True
             else:
                 for event in pygame.event.get():
-                    print(event)
                     if event.type == pygame.QUIT:
                         self.gameQuit = True
                         self.gameOver = True
@@ -453,9 +452,9 @@ class Game():
         if self.gameOver:
             over=True
             self.reset()
-            return (1,over)
+            return (0.0,over)
 
-        return (1,self.gameOver)
+        return (1.0,self.gameOver)
             
         
 
@@ -500,13 +499,13 @@ import time as t
 def main():
     over  = False
     DinoGame = Game()
-    for i in range(5):
-	    while not over:
-	        (temp,over) = DinoGame.step(0)
-	        # update()
-	        (temp, over) = DinoGame.step(1)
-	        (temp, over) = DinoGame.step(2) 
-	    over = False    
+    (temp, over) = DinoGame.step(0)
+    # while not over:
+    #     (temp,over) = DinoGame.step(0)
+    #     # update()
+    #     (temp, over) = DinoGame.step(1)
+    #     (temp, over) = DinoGame.step(2)
+    # over = False
     DinoGame.quit()
 
 
