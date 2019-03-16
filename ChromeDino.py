@@ -9,7 +9,7 @@ import time as t
 pygame.init()
 
 scr_size = (width,height) = (600,150)
-FPS = 1000
+FPS = 60
 gravity = 0.6
 
 black = (0,0,0)
@@ -418,8 +418,8 @@ class Game():
                         self.last_obstacle.empty()
                         self.last_obstacle.add(Ptera(self.gamespeed, 46, 40))
 
-            if len(self.clouds) < 5 and random.randrange(0,300) == 10:
-                Cloud(width,random.randrange(height/5,height/2))
+            # if len(self.clouds) < 5 and random.randrange(0,300) == 10:
+            #     Cloud(width,random.randrange(height/5,height/2))
 
             self.playerDino.update()
             self.cacti.update()
@@ -431,7 +431,7 @@ class Game():
             if pygame.display.get_surface() != None:
                 screen.fill(background_col)
                 self.new_ground.draw()
-                self.clouds.draw(screen)
+                # self.clouds.draw(screen)
                 self.scb.draw()
                 self.cacti.draw(screen)
                 self.pteras.draw(screen)

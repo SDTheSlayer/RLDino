@@ -12,7 +12,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 
-num_episodes = 2000
+num_episodes = 500
 BATCH_SIZE = 128
 GAMMA = 0.999
 EPS_START = 0.9
@@ -69,7 +69,7 @@ class DQN(nn.Module):
         convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
         convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
         linear_input_size = convw * convh * 32
-        self.head = nn.Linear(linear_input_size, 3) # 448 or 512
+        self.head = nn.Linear(linear_input_size, 3)
 
     def forward(self, x):
         x = F.relu(self.bn1(self.conv1(x)))
