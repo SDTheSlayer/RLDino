@@ -12,7 +12,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 
-num_episodes = 5000
+num_episodes = 500
 BATCH_SIZE = 128
 GAMMA = 0.999
 EPS_START = 0.9
@@ -29,10 +29,12 @@ if is_ipython:
 plt.ion()
 
 episode_durations = []
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
+
 
 class ReplayMemory(object):
 
@@ -53,6 +55,7 @@ class ReplayMemory(object):
     def __len__(self):
         return len(self.memory)
 
+
 class DQN(nn.Module):
 
     def __init__(self, h, w):
@@ -70,7 +73,7 @@ class DQN(nn.Module):
         convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
         convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
         linear_input_size = convw * convh * 32
-        self.head = nn.Linear(linear_input_size, 3)
+        self.head = nn.Linear(linear_input_size, 2) # 448 or 512
 
     def forward(self, x):
         x = F.relu(self.bn1(self.conv1(self.pool(x))))
@@ -78,9 +81,10 @@ class DQN(nn.Module):
         x = F.relu(self.bn3(self.conv3(x)))
         return self.head(x.view(x.size(0), -1))
 
+
 resize = T.Compose([T.ToPILImage(),
                     T.Resize(40, interpolation=Image.CUBIC),
-                    T.ToTensor()])        
+                    T.ToTensor()])
 
 def get_screen():
     screen = cd.pygame.surfarray.array3d(cd.screen)
@@ -90,15 +94,20 @@ def get_screen():
     screen = resize(screen).unsqueeze(0).to(device)
     return screen
 
+
 init_screen = get_screen()
 _, _, screen_height, screen_width = init_screen.shape
 
 policy_net = DQN(screen_height, screen_width).to(device)
+target_net = DQN(screen_height, screen_width).to(device)
+target_net.load_state_dict(policy_net.state_dict())
+target_net.eval()
 
 optimizer = optim.RMSprop(policy_net.parameters())
 memory = ReplayMemory(10000)
 
 steps_done = 0
+
 
 def select_action(state):
     global steps_done
@@ -113,11 +122,12 @@ def select_action(state):
         return torch.tensor([[random.randrange(3)]], device=device, dtype=torch.long)
 
 
+
 def plot_durations():
     plt.figure(2)
     plt.clf()
     durations_t = torch.tensor(episode_durations, dtype=torch.float)
-    plt.title('DQN...')
+    plt.title('DDQN')
     plt.xlabel('Episode')
     plt.ylabel('Duration')
     plt.plot(durations_t.numpy())
@@ -131,6 +141,8 @@ def plot_durations():
     if is_ipython:
         display.clear_output(wait=True)
         display.display(plt.gcf())
+
+
 
 
 def optimize_model():
@@ -149,7 +161,13 @@ def optimize_model():
 
     state_action_values = policy_net(state_batch).gather(1, action_batch)
     next_state_values = torch.zeros(BATCH_SIZE, device=device)
-    next_state_values[non_final_mask] = policy_net(non_final_next_states).max(1)[0].detach()
+    next_actions = policy_net(non_final_next_states).max(1)[1].detach()
+    temp = target_net(non_final_next_states)
+    j = 0
+    for s in range(len(reward_batch)):
+        if non_final_mask[s] == 1:
+            next_state_values[s] = temp[j][next_actions[j]].detach()
+            j=j+1
 
     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
@@ -161,7 +179,6 @@ def optimize_model():
     optimizer.step()
 
 DinoGame = cd.Game()
-
 for i_episode in range(num_episodes):
     DinoGame.reset()
     last_screen = get_screen()
@@ -189,11 +206,14 @@ for i_episode in range(num_episodes):
                       .format(t))
                 break
     else:
+
         for t in count():
+            # Select and perform an action
             action = select_action(state)
             reward, done = DinoGame.step(action.item())
             reward = torch.tensor([reward], device=device)
 
+            # Observe new state
             last_screen = current_screen
             current_screen = get_screen()
             if not done:
@@ -204,24 +224,17 @@ for i_episode in range(num_episodes):
             memory.push(state, action, next_state, reward)
 
             state = next_state
-
             if done:
                 episode_durations.append(t + 1)
                 print("Episode: {}/{}, score: {}"
                       .format(i_episode, num_episodes, t))
                 break
-    optimize_model()
 
-
-    plot_durations()   
-
+        optimize_model()
+        if i_episode % TARGET_UPDATE == 0:
+            target_net.load_state_dict(policy_net.state_dict())
+    plot_durations()  
 
 print('DONE :)')
-
-
-
-
-
-
 plt.ioff()
 plt.show()

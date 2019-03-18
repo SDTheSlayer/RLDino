@@ -9,7 +9,7 @@ import time as t
 pygame.init()
 
 scr_size = (width,height) = (600,150)
-FPS = 60
+FPS = 10000
 gravity = 0.6
 
 black = (0,0,0)
@@ -294,7 +294,7 @@ count = 0
 
 class Game():
     def __init__(self):
-        self.stepsize=12
+        self.stepsize=4
         self.counter = 0
         self.gamespeed = 4
         self.startMenu = False
@@ -361,6 +361,7 @@ class Game():
     def step(self,num):
         self.input(num)
         curstep = 0
+        self.stepsize = 10
         while not self.gameOver and not self.gameQuit and curstep < self.stepsize:
             curstep = curstep +1
             if pygame.display.get_surface() == None:
