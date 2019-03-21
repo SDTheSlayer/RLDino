@@ -12,12 +12,12 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 
-num_episodes = 5000
+num_episodes = 60000
 BATCH_SIZE = 128
 GAMMA = 0.999
-EPS_START = 0.9
+EPS_START = 0.95
 EPS_END = 0.05
-EPS_DECAY = 200
+EPS_DECAY = 1000
 TARGET_UPDATE = 10
 
 import matplotlib
@@ -70,13 +70,16 @@ class DQN(nn.Module):
         convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
         convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
         linear_input_size = convw * convh * 32
-        self.head = nn.Linear(linear_input_size, 3)
+        self.fullconnected = nn.Linear(linear_input_size,16)
+        self.head = nn.Linear(16, 3)
 
     def forward(self, x):
         x = F.relu(self.bn1(self.conv1(self.pool(x))))
         x = F.relu(self.bn2(self.conv2(x)))
         x = F.relu(self.bn3(self.conv3(x)))
-        return self.head(x.view(x.size(0), -1))
+        x = x.view(x.size(0), -1)
+        x = F.relu(self.fullconnected(x))
+        return self.head(x)
 
 resize = T.Compose([T.ToPILImage(),
                     T.Resize(40, interpolation=Image.CUBIC),
@@ -96,7 +99,7 @@ _, _, screen_height, screen_width = init_screen.shape
 policy_net = DQN(screen_height, screen_width).to(device)
 
 optimizer = optim.RMSprop(policy_net.parameters())
-memory = ReplayMemory(10000)
+memory = ReplayMemory(75000)
 
 steps_done = 0
 
@@ -215,7 +218,11 @@ for i_episode in range(num_episodes):
 
     plot_durations()   
 
+    if i_episode%5000 == 4999:
+        torch.save(policy_net.state_dict(),"Models\\DQN\\DQN%d.pth" % i_episode)
 
+
+torch.save(policy_net.state_dict(),"Models\\DQN\\DQNFinal.pth")
 print('DONE :)')
 
 

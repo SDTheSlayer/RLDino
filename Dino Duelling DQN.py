@@ -12,12 +12,12 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 
-num_episodes = 2000
+num_episodes = 60000
 BATCH_SIZE = 128
 GAMMA = 0.999
-EPS_START = 0.9
+EPS_START = 0.95
 EPS_END = 0.05
-EPS_DECAY = 200
+EPS_DECAY = 1000
 TARGET_UPDATE = 10
 
 import matplotlib
@@ -232,7 +232,11 @@ for i_episode in range(num_episodes):
         optimize_model()
         if i_episode % TARGET_UPDATE == 0:
             target_net.load_state_dict(policy_net.state_dict())
-    plot_durations() 
+    plot_durations()
+    if i_episode % 5000 == 4999:
+        torch.save(policy_net.state_dict(), "Models\\Duelling\\Duelling%d.pth" % i_episode)
+
+torch.save(policy_net.state_dict(), "Models\\Duelling\\DuellingFinal.pth")
 
 
 print('DONE :)')

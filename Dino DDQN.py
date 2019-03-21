@@ -12,12 +12,12 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 
-num_episodes = 500
+num_episodes = 60000
 BATCH_SIZE = 128
 GAMMA = 0.999
-EPS_START = 0.9
+EPS_START = 0.95
 EPS_END = 0.05
-EPS_DECAY = 200
+EPS_DECAY = 1000
 TARGET_UPDATE = 10
 
 import matplotlib
@@ -73,13 +73,16 @@ class DQN(nn.Module):
         convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
         convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
         linear_input_size = convw * convh * 32
-        self.head = nn.Linear(linear_input_size, 2) # 448 or 512
+        self.fullconnected = nn.Linear(linear_input_size, 16)
+        self.head = nn.Linear(16, 3)
 
     def forward(self, x):
         x = F.relu(self.bn1(self.conv1(self.pool(x))))
         x = F.relu(self.bn2(self.conv2(x)))
         x = F.relu(self.bn3(self.conv3(x)))
-        return self.head(x.view(x.size(0), -1))
+        x = x.view(x.size(0), -1)
+        x = F.relu(self.fullconnected(x))
+        return self.head(x)
 
 
 resize = T.Compose([T.ToPILImage(),
@@ -233,7 +236,11 @@ for i_episode in range(num_episodes):
         optimize_model()
         if i_episode % TARGET_UPDATE == 0:
             target_net.load_state_dict(policy_net.state_dict())
-    plot_durations()  
+    plot_durations()
+    if i_episode % 5000 == 4999:
+        torch.save(policy_net.state_dict(), "Models\\DDQN\\DDQN%d.pth" % i_episode)
+
+torch.save(policy_net.state_dict(), "Models\\DDQN\\DDQNFinal.pth")
 
 print('DONE :)')
 plt.ioff()
